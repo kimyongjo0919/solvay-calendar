@@ -1,4 +1,4 @@
-var CACHE = 'solvay-v2';
+var CACHE = 'solvay-v3';
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/logo-small.png', 'icons/logo-splash.png', 'icons/icon-192.png'];
 
 self.addEventListener('install', function (e) {
