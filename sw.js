@@ -1,8 +1,8 @@
 // 푸시 알림(OneSignal) 처리기. 불러오지 못해도 앱은 정상 동작하도록 감쌉니다.
 try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); } catch (e) {}
 
-var CACHE = 'solvay-v5';
-var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/logo-white-small.png', 'icons/logo-splash.png', 'icons/icon-192.png'];
+var CACHE = 'solvay-v6';
+var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/logo-white.png', 'icons/logo-splash.png', 'icons/icon-192.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
