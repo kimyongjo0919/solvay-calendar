@@ -168,6 +168,17 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
 .chip.red{background:rgba(248,113,113,.18);color:var(--bad)}
 .installbar{background:#0b1130;color:var(--ink)}
 .toast{background:#1b2350;border:1px solid var(--line)}
+.tag.st{background:rgba(110,130,255,.28);color:#dfe5ff}
+.stay{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:rgba(110,130,255,.08)}
+.stay h3{margin:0 0 6px;font-size:14px}
+.srow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+.srow:first-of-type{border-top:0}
+.srow .lab{flex:none;min-width:84px;font-size:13px;font-weight:700}
+.srow .who{flex:1;min-width:0;font-size:13px;word-break:break-word;color:var(--ink)}
+.srow .who.none{color:var(--sub)}
+.sbtn{flex:none;border:1px solid rgba(142,160,255,.6);background:rgba(100,125,255,.2);color:#e3e8ff;border-radius:8px;font-size:12px;font-weight:700;padding:6px 10px;cursor:pointer}
+.sbtn.on{background:var(--main);color:#fff;border-color:#8ea0ff}
+.sbtn:disabled{opacity:.5}
 </style>
 </head>
 <body>
@@ -383,6 +394,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
       <div style="font-size:12px;color:var(--sub);margin-top:8px">
         <span class="tag ev" style="display:inline-block">일정</span>
         <span class="tag lg" style="display:inline-block">기록</span>
+        <span class="tag st" style="display:inline-block">🍱점심 🌙방과후 남는 인원</span>
         <span class="tag dl" style="display:inline-block">최종 마감</span>
       </div>
     </div>
@@ -528,7 +540,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
 (function () {
   'use strict';
 
-  var S = { students: [], groups: {}, me: '', edit: null, photo: { full: '', thumb: '' }, mp: { mode: 'keep', full: '', thumb: '', has: false }, notices: [], nEdit: '', deadline: '', today: '', logs: [], events: [], pin: '', year: 0, month: 0, sel: '', busy: false };
+  var S = { students: [], groups: {}, me: '', edit: null, photo: { full: '', thumb: '' }, stays: [], stayBusy: {}, mp: { mode: 'keep', full: '', thumb: '', has: false }, notices: [], nEdit: '', deadline: '', today: '', logs: [], events: [], pin: '', year: 0, month: 0, sel: '', busy: false };
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
   function $(id) { return document.getElementById(id); }
@@ -567,6 +579,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
     if (fn === 'addLog') { body = { action: 'addLog', name: a[0], date: a[1], done: a[2], next: a[3], photo: a[4], thumb: a[5] }; }
     else if (fn === 'addEvent') { body = { action: 'addEvent', title: a[0], date: a[1], who: a[2], type: a[3], creator: a[4] }; }
     else if (fn === 'updateLog') { body = { action: 'updateLog', id: a[0], editor: a[1], pin: a[2], date: a[3], done: a[4], next: a[5], photo: a[6], thumb: a[7], removePhoto: a[8] }; }
+    else if (fn === 'setStay') { body = { action: 'setStay', date: a[0], slot: a[1], name: a[2], on: a[3] }; }
     else if (fn === 'postNotice') { body = { action: 'postNotice', pin: a[0], title: a[1], body: a[2], sticky: a[3], due: a[4] }; }
     else if (fn === 'updateNotice') { body = { action: 'updateNotice', id: a[0], pin: a[1], title: a[2], body: a[3], sticky: a[4], due: a[5] }; }
     else if (fn === 'deleteNotice') { body = { action: 'deleteNotice', id: a[0], pin: a[1] }; }
@@ -725,6 +738,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
       S.logs = res.logs || [];
       S.events = res.events || [];
       S.notices = res.notices || [];
+      S.stays = res.stays || [];
       if (res.today) { S.today = res.today; renderDday(); }
       renderFeed();
       renderCal();
@@ -1202,6 +1216,65 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
     } catch (e) { toast('알림을 켜지 못했어요.'); }
   }
 
+  /* ---------- 점심·방과후 남는 사람 ---------- */
+  var SLOT_LABEL = { '점심': '🍱 점심시간', '방과후': '🌙 방과후' };
+
+  function stayNames(date, slot) {
+    var out = [];
+    for (var i = 0; i < S.stays.length; i++) {
+      if (S.stays[i].date === date && S.stays[i].slot === slot) { out.push(S.stays[i].name); }
+    }
+    return out;
+  }
+
+  function stayBlock(date) {
+    var wrap = el('div', 'stay');
+    wrap.appendChild(el('h3', '', '실험하러 남는 사람'));
+    var slots = ['점심', '방과후'];
+    for (var s = 0; s < slots.length; s++) {
+      (function (slot) {
+        var names = stayNames(date, slot);
+        var row = el('div', 'srow');
+        row.appendChild(el('div', 'lab', SLOT_LABEL[slot] + ' ' + names.length + '명'));
+        row.appendChild(el('div', names.length ? 'who' : 'who none', names.length ? names.join(', ') : '아직 없어요'));
+        var mine = names.indexOf(S.me) >= 0;
+        var b = el('button', mine ? 'sbtn on' : 'sbtn', mine ? '✓ 남아요 (취소)' : '나도 남아요');
+        b.type = 'button';
+        b.addEventListener('click', function () { toggleStay(date, slot, !mine, b); });
+        row.appendChild(b);
+        wrap.appendChild(row);
+      })(slots[s]);
+    }
+    if (!S.me) { wrap.appendChild(el('div', 'edited', '아래 "내 이름"을 먼저 선택하면 누를 수 있어요.')); }
+    return wrap;
+  }
+
+  function toggleStay(date, slot, on, btn) {
+    if (!S.me) { toast('내 이름을 먼저 선택해 주세요.'); return; }
+    var key = date + '|' + slot + '|' + S.me;
+    if (S.stayBusy[key]) { return; }
+    S.stayBusy[key] = true;
+    var name = S.me;
+    btn.disabled = true;
+    var before = S.stays.slice();
+    var rest = [];
+    for (var i = 0; i < S.stays.length; i++) {
+      var x = S.stays[i];
+      if (!(x.date === date && x.slot === slot && x.name === name)) { rest.push(x); }
+    }
+    if (on) { rest.push({ date: date, slot: slot, name: name }); }
+    S.stays = rest;
+    renderCal();
+    call('setStay', [date, slot, name, on], function () {
+      delete S.stayBusy[key];
+    }, function (msg) {
+      delete S.stayBusy[key];
+      S.stays = before;
+      renderCal();
+      toast(msg);
+    });
+  }
+
   function delButton(kind, id) {
     var b = el('button', 'del', '삭제');
     b.type = 'button';
@@ -1351,7 +1424,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
     clear(g);
     for (var d = 0; d < 7; d++) { g.appendChild(el('div', 'dow', DOW[d])); }
 
-    var evBy = {}, lgBy = {};
+    var evBy = {}, lgBy = {}, stBy = {};
     for (var i = 0; i < S.events.length; i++) {
       var e = S.events[i];
       if (!evBy[e.date]) { evBy[e.date] = []; }
@@ -1360,6 +1433,12 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
     for (var j = 0; j < S.logs.length; j++) {
       var l = S.logs[j];
       lgBy[l.date] = (lgBy[l.date] || 0) + 1;
+    }
+
+    for (var k2 = 0; k2 < S.stays.length; k2++) {
+      var sy = S.stays[k2];
+      if (!stBy[sy.date]) { stBy[sy.date] = { '점심': 0, '방과후': 0 }; }
+      stBy[sy.date][sy.slot] = (stBy[sy.date][sy.slot] || 0) + 1;
     }
 
     var first = new Date(Date.UTC(S.year, S.month, 1)).getUTCDay();
@@ -1375,6 +1454,10 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
       c.type = 'button';
       c.appendChild(el('span', 'n', String(n)));
       if (key === S.deadline) { c.appendChild(el('span', 'tag dl', '마감')); }
+      var sc = stBy[key];
+      if (sc && (sc['점심'] || sc['방과후'])) {
+        c.appendChild(el('span', 'tag st', '🍱' + sc['점심'] + ' 🌙' + sc['방과후']));
+      }
       var evs = evBy[key] || [];
       if (evs.length) {
         c.appendChild(el('span', 'tag ev', (evs.length > 1 ? '(' + evs.length + ') ' : '') + evs[0].title));
@@ -1393,6 +1476,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
     clear(box);
     if (!S.sel) { return; }
     $('dayTitle').textContent = S.sel + (S.sel === S.deadline ? ' (최종 마감일)' : '');
+    box.appendChild(stayBlock(S.sel));
     var any = false, i;
     for (i = 0; i < S.events.length; i++) {
       var e = S.events[i];
