@@ -168,7 +168,8 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
 .chip.red{background:rgba(248,113,113,.18);color:var(--bad)}
 .installbar{background:#0b1130;color:var(--ink)}
 .toast{background:#1b2350;border:1px solid var(--line)}
-.tag.st{background:rgba(110,130,255,.28);color:#dfe5ff}
+.tag.st.two{white-space:normal;line-height:11px;word-break:break-all}
+.tag.st{background:rgba(110,130,255,.28);color:#dfe5ff;font-size:8.5px;letter-spacing:-.5px;padding:0 1px;text-align:center}
 .stay{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:rgba(110,130,255,.08)}
 .stay h3{margin:0 0 6px;font-size:14px}
 .srow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
@@ -394,7 +395,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
       <div style="font-size:12px;color:var(--sub);margin-top:8px">
         <span class="tag ev" style="display:inline-block">일정</span>
         <span class="tag lg" style="display:inline-block">기록</span>
-        <span class="tag st" style="display:inline-block">🍱점심 🌙방과후 남는 인원</span>
+        <span class="tag st" style="display:inline-block">☀️아침 🍱점심 🌙방과후 남는 인원</span>
         <span class="tag dl" style="display:inline-block">최종 마감</span>
       </div>
     </div>
@@ -1217,7 +1218,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
   }
 
   /* ---------- 점심·방과후 남는 사람 ---------- */
-  var SLOT_LABEL = { '점심': '🍱 점심시간', '방과후': '🌙 방과후' };
+  var SLOT_LABEL = { '아침': '☀️ 아침', '점심': '🍱 점심시간', '방과후': '🌙 방과후' };
 
   function stayNames(date, slot) {
     var out = [];
@@ -1230,7 +1231,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
   function stayBlock(date) {
     var wrap = el('div', 'stay');
     wrap.appendChild(el('h3', '', '실험하러 남는 사람'));
-    var slots = ['점심', '방과후'];
+    var slots = ['아침', '점심', '방과후'];
     for (var s = 0; s < slots.length; s++) {
       (function (slot) {
         var names = stayNames(date, slot);
@@ -1437,7 +1438,7 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
 
     for (var k2 = 0; k2 < S.stays.length; k2++) {
       var sy = S.stays[k2];
-      if (!stBy[sy.date]) { stBy[sy.date] = { '점심': 0, '방과후': 0 }; }
+      if (!stBy[sy.date]) { stBy[sy.date] = { '아침': 0, '점심': 0, '방과후': 0 }; }
       stBy[sy.date][sy.slot] = (stBy[sy.date][sy.slot] || 0) + 1;
     }
 
@@ -1455,8 +1456,12 @@ input::placeholder,textarea::placeholder{color:#6f7ba3}
       c.appendChild(el('span', 'n', String(n)));
       if (key === S.deadline) { c.appendChild(el('span', 'tag dl', '마감')); }
       var sc = stBy[key];
-      if (sc && (sc['점심'] || sc['방과후'])) {
-        c.appendChild(el('span', 'tag st', '🍱' + sc['점심'] + ' 🌙' + sc['방과후']));
+      if (sc && (sc['아침'] || sc['점심'] || sc['방과후'])) {
+        var st = [];
+        if (sc['아침']) { st.push('☀' + sc['아침']); }
+        if (sc['점심']) { st.push('🍱' + sc['점심']); }
+        if (sc['방과후']) { st.push('🌙' + sc['방과후']); }
+        c.appendChild(el('span', st.length > 2 ? 'tag st two' : 'tag st', st.join('')));
       }
       var evs = evBy[key] || [];
       if (evs.length) {
